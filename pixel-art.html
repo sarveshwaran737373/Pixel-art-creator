@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Art Creator</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #222;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 { margin-bottom: 10px; }
+        .container {
+            display: flex;
+            gap: 20px;
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        canvas {
+            background-color: #fff;
+            cursor: crosshair;
+            border: 2px solid #555;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(4, 30px);
+            gap: 5px;
+        }
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #000;
+            cursor: pointer;
+        }
+        button {
+            padding: 10px;
+            background: #444;
+            color: white;
+            border: 1px solid #555;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover { background: #555; }
+        button.clear { background: #800; }
+        button.export { background: #080; }
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            cursor: pointer;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pixel Art Creator</h1>
+    
+    <div class="container">
+        <canvas id="pixelCanvas" width="320" height="320"></canvas>
+        
+        <div class="controls">
+            <div>
+                <label>Custom Color:</label>
+                <input type="color" id="colorInput" value="#000000">
+            </div>
+            
+            <div>
+                <label>Presets:</label>
+                <div class="color-picker">
+                    <div class="color-btn" style="background: #000000" onclick="setColor('#000000')"></div>
+                    <div class="color-btn" style="background: #ffffff" onclick="setColor('#ffffff')"></div>
+                    <div class="color-btn" style="background: #ff0000" onclick="setColor('#ff0000')"></div>
+                    <div class="color-btn" style="background: #00ff00" onclick="setColor('#00ff00')"></div>
+                    <div class="color-btn" style="background: #0000ff" onclick="setColor('#0000ff')"></div>
+                    <div class="color-btn" style="background: #ffff00" onclick="setColor('#ffff00')"></div>
+                    <div class="color-btn" style="background: #00ffff" onclick="setColor('#00ffff')"></div>
+                    <div class="color-btn" style="background: #ff00ff" onclick="setColor('#ff00ff')"></div>
+                    <div class="color-btn" style="background: #888888" onclick="setColor('#888888')"></div>
+                    <div class="color-btn" style="background: #800000" onclick="setColor('#800000')"></div>
+                    <div class="color-btn" style="background: #008000" onclick="setColor('#008000')"></div>
+                    <div class="color-btn" style="background: #000080" onclick="setColor('#000080')"></div>
+                </div>
+            </div>
+
+            <button class="clear" onclick="clearCanvas()">Clear Canvas</button>
+            <button class="export" onclick="exportData()">Get Python Data</button>
+        </div>
+    </div>
+
+    <div class="info">
+        Left Click: Draw | Right Click: Erase (White) | Export generates a Python list of colors
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorInput = document.getElementById('colorInput');
+        
+        // Configuration
+        const pixelSize = 20; // Size of each "pixel" block
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        let currentColor = '#000000';
+        let isDrawing = false;
+
+        // Initialize canvas with white
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+
+        function setColor(color) {
+            currentColor = color;
+            colorInput.value = color;
+        }
+
+        colorInput.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+        });
+
+        function getPixelCoords(x, y) {
+            return {
+                x: Math.floor(x / pixelSize) * pixelSize,
+                y: Math.floor(y / pixelSize) * pixelSize
+            };
+        }
+
+        function drawPixel(x, y, color) {
+            const coords = getPixelCoords(x, y);
+            ctx.fillStyle = color;
+            ctx.fillRect(coords.x, coords.y, pixelSize, pixelSize);
+            // Draw grid line
+            ctx.strokeStyle = '#eee';
+            ctx.strokeRect(coords.x, coords.y, pixelSize, pixelSize);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (e.button === 2) { // Right click erase
+                drawPixel(x, y, '#ffffff');
+            } else {
+                drawPixel(x, y, currentColor);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (e.buttons === 2) { // Right click erase
+                drawPixel(x, y, '#ffffff');
+            } else {
+                drawPixel(x, y, currentColor);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+        canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+        function clearCanvas() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        function exportData() {
+            // Extract pixel data
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            const pixels = [];
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i+1];
+                const b = data[i+2];
+                // Convert to hex
+                const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                pixels.push(hex);
+            }
+            
+            // Format as Python list
+            const pythonList = "pixel_data = [\n    '" + pixels.join("',\n    '") + "'\n]";
+            console.log(pythonList);
+            alert("Pixel data copied to console (F12). You can paste this into the Python script.");
+        }
+    </script>
+</body>
+</html>
